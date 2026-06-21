@@ -1,0 +1,60 @@
+print "=== ТЕСТ 2: ТЕКСТОВЫЙ ПРОЦЕССОР И ИНТЕРАКТИВНЫЙ ВВОД ===";
+print "";
+
+print "--- Шаг 1: Инициализация текстовых данных ---";
+database_record = "   SpaceCorp_Employee_ID_8842_Active   ";
+print "Оригинальная строка из базы данных:";
+print database_record;
+
+# Очищаем пробелы на месте автономной командой
+trim(database_record);
+print "Строка после обработки функцией trim():";
+print database_record;
+
+# Меряем длину строки
+record_length = strlen(database_record);
+print "Длина очищенной строки (strlen):";
+print record_length;
+print "";
+
+print "--- Шаг 2: Поиск и замена данных ---";
+# Ищем подстроку
+id_position = str_pos(database_record, "8842");
+print "Индекс начала идентификатора '8842' в строке:";
+print id_position;
+
+# Производим замену статуса на месте
+str_replace(database_record, "Active", "Suspended");
+print "Результат обновления статуса (str_replace):";
+print database_record;
+print "";
+
+print "--- Шаг 3: Интерактивный ввод и If-Else логика типов ---";
+print "Ввод системных параметров доступа.";
+print "Пожалуйста, введите секретный код авторизации (число):";
+input security_code;
+
+print "";
+print "--- Результаты верификации доступа ---";
+if (security_code > 500) {
+  print "ДОСТУП РАЗРЕШЕН! Код авторизации прошел проверку.";
+  print "Случайный токен сессии доступа:";
+  print rand(security_code);
+}
+else {
+  print "ДОСТУП ЗАБЛОКИРОВАН! Недостаточный уровень кода авторизации.";
+  print "Синус кода безопасности для шифрования:";
+  print sin(security_code);
+}
+
+print "";
+if (is_string(database_record) == 1) {
+  print "Проверка типов: Переменная database_record подтверждена как СТРОКА.";
+}
+
+if (empty(database_record) == 0) {
+  print "Проверка пустоты: Переменная database_record подтверждена как ЗАПОЛНЕННАЯ.";
+}
+
+print "";
+print "=== ТЕСТ ТЕКСТОВОГО ПРОЦЕССОРА УСПЕШНО ЗАВЕРШЕН ===";

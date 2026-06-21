@@ -1,0 +1,17 @@
+a = 10;
+b = 20;
+
+if (a < b)
+{
+	print "true";
+}
+
+if (b > a)
+{
+	print "true";
+}
+
+if (a > 10 && b > 10)
+{
+	print "true";
+}
