@@ -1,0 +1,418 @@
+# ============================================================
+# MathLang v2.0 - Полный тест всех возможностей интерпретатора
+# ============================================================
+
+# ---- ТЕСТ 1: Встроенные константы ----
+print "=== ТЕСТ 1: Встроенные константы ===";
+print pi;
+print e;
+
+# ---- ТЕСТ 2: Числовые переменные и присваивание ----
+print "=== ТЕСТ 2: Числовые переменные ===";
+x = 10;
+y = 3.5;
+z = -7;
+print x;
+print y;
+print z;
+
+# ---- ТЕСТ 3: Строковые переменные ----
+print "=== ТЕСТ 3: Строковые переменные ===";
+greeting = "Hello, MathLang!";
+print greeting;
+empty_str = "";
+print empty_str;
+
+# ---- ТЕСТ 4: Арифметические операции ----
+print "=== ТЕСТ 4: Арифметика ===";
+a = 15;
+b = 4;
+
+# Сложение
+print a + b;
+
+# Вычитание
+print a - b;
+
+# Умножение
+print a * b;
+
+# Деление
+print a / b;
+
+# Возведение в степень
+print 2 ^ 10;
+
+# Приоритет операций: 2 + 3 * 4 = 14
+print 2 + 3 * 4;
+
+# Скобки: (2 + 3) * 4 = 20
+print (2 + 3) * 4;
+
+# Унарный минус
+print -5 + 10;
+
+# Вложенные скобки
+print ((2 + 3) * (4 - 1)) ^ 2;
+
+# ---- ТЕСТ 5: Операторы ++ и += ----
+print "=== ТЕСТ 5: Инкремент и += ===";
+counter = 0;
+counter++;
+print counter;
+counter++;
+print counter;
+counter += 10;
+print counter;
+
+# ---- ТЕСТ 6: Условие if / else ----
+print "=== ТЕСТ 6: if / else ===";
+val = 42;
+
+if (val == 42) {
+    print "val равен 42 - OK";
+}
+
+if (val > 100) {
+    print "ОШИБКА: val > 100";
+}
+else {
+    print "val не больше 100 - OK";
+}
+
+if (val < 50) {
+    print "val < 50 - OK";
+}
+
+if (val >= 42) {
+    print "val >= 42 - OK";
+}
+
+if (val <= 42) {
+    print "val <= 42 - OK";
+}
+
+# ---- ТЕСТ 7: Цикл while ----
+print "=== ТЕСТ 7: Цикл while ===";
+i = 0;
+while (i < 5) {
+    print i;
+    i++;
+}
+
+# ---- ТЕСТ 8: Цикл for ----
+print "=== ТЕСТ 8: Цикл for ===";
+sum = 0;
+for (j = 1; j <= 10; j++) {
+    sum += j;
+}
+print "Сумма 1..10:";
+print sum;
+
+# ---- ТЕСТ 9: Вложенные циклы ----
+print "=== ТЕСТ 9: Вложенные циклы ===";
+for (row = 1; row <= 3; row++) {
+    for (col = 1; col <= 3; col++) {
+        print row * col;
+    }
+}
+
+# ---- ТЕСТ 10: Пользовательские функции ----
+print "=== ТЕСТ 10: Функции ===";
+
+# Функция с одним параметром
+func square(n) {
+    return n * n;
+}
+print square(7);
+
+# Функция с двумя параметрами
+func add(a, b) {
+    return a + b;
+}
+print add(100, 200);
+
+# Функция с тремя параметрами
+func sum3(a, b, c) {
+    return a + b + c;
+}
+print sum3(10, 20, 30);
+
+# ---- ТЕСТ 11: Функция с циклом внутри ----
+print "=== ТЕСТ 11: Функция с циклом ===";
+
+func factorial(n) {
+    result = 1;
+    for (i = 1; i <= n; i++) {
+        result = result * i;
+    }
+    return result;
+}
+print "5! =";
+print factorial(5);
+print "10! =";
+print factorial(10);
+
+# ---- ТЕСТ 12: Функция с while внутри ----
+print "=== ТЕСТ 12: Функция с while ===";
+
+func count_down(start) {
+    i = start;
+    total = 0;
+    while (i > 0) {
+        total += i;
+        i = i - 1;
+    }
+    return total;
+}
+print count_down(5);
+
+# ---- ТЕСТ 13: Вложенные вызовы функций ----
+print "=== ТЕСТ 13: Вложенные вызовы ===";
+print add(square(3), square(4));
+
+# ---- ТЕСТ 14: Области видимости функций ----
+print "=== ТЕСТ 14: Области видимости ===";
+x = 999;
+func modify_local(x) {
+    x = x + 1;
+    return x;
+}
+print modify_local(5);
+print x;
+
+# ---- ТЕСТ 15: Встроенные математические функции ----
+print "=== ТЕСТ 15: Математические функции ===";
+
+# sin
+print sin(0);
+
+# cos
+print cos(0);
+
+# sin(pi/2) ~ 1
+print sin(pi / 2);
+
+# sqrt
+print sqrt(144);
+print sqrt(2);
+
+# round
+print round(3.7);
+print round(3.2);
+
+# floor
+print floor(3.9);
+print floor(3.1);
+
+# ceil
+print ceil(3.1);
+print ceil(3.9);
+
+# Комбинация: sqrt(sin^2 + cos^2) = 1
+angle = pi / 4;
+check = sqrt(sin(angle) ^ 2 + cos(angle) ^ 2);
+print check;
+
+# rand - случайное число от 1 до 100
+r = rand(100);
+print r;
+
+# ---- ТЕСТ 16: Степень (оператор ^) ----
+print "=== ТЕСТ 16: Степень ===";
+print 2 ^ 0;
+print 2 ^ 1;
+print 2 ^ 8;
+print 3 ^ 3;
+
+# ---- ТЕСТ 17: Массивы ----
+print "=== ТЕСТ 17: Массивы ===";
+
+# Создание массива
+arr = array(5);
+print arr;
+
+# Заполнение
+arr[0] = 10;
+arr[1] = 20;
+arr[2] = 30;
+arr[3] = 40;
+arr[4] = 50;
+print arr;
+
+# Доступ по индексу
+print arr[0];
+print arr[4];
+
+# Перезапись элемента
+arr[2] = 999;
+print arr;
+
+# Массив в цикле
+squares_arr = array(5);
+for (i = 0; i < 5; i++) {
+    squares_arr[i] = i * i;
+}
+print squares_arr;
+
+# ---- ТЕСТ 18: Строковые функции - strlen ----
+print "=== ТЕСТ 18: strlen ===";
+text = "Hello";
+print strlen(text);
+
+long_text = "MathLang Interpreter";
+print strlen(long_text);
+
+# strlen для массива - возвращает размер
+test_arr = array(7);
+print strlen(test_arr);
+
+# ---- ТЕСТ 19: Строковые функции - empty ----
+print "=== ТЕСТ 19: empty ===";
+non_empty = "data";
+print empty(non_empty);
+
+empty_s = "";
+print empty(empty_s);
+
+num_zero = 0;
+print empty(num_zero);
+
+num_nonzero = 42;
+print empty(num_nonzero);
+
+empty_arr = array(0);
+print empty(empty_arr);
+
+full_arr = array(3);
+print empty(full_arr);
+
+# ---- ТЕСТ 20: Строковые функции - is_string ----
+print "=== ТЕСТ 20: is_string ===";
+str_var = "hello";
+num_var = 123;
+print is_string(str_var);
+print is_string(num_var);
+
+# ---- ТЕСТ 21: Строковые функции - str_pos ----
+print "=== ТЕСТ 21: str_pos ===";
+sentence = "Hello, World!";
+print str_pos(sentence, "World");
+print str_pos(sentence, "Hello");
+print str_pos(sentence, "xyz");
+
+# ---- ТЕСТ 22: Строковые функции - str_replace ----
+print "=== ТЕСТ 22: str_replace ===";
+message = "Hello, World!";
+str_replace(message, "World", "MathLang");
+print message;
+
+# Множественная замена
+repeating = "aaa bbb aaa";
+str_replace(repeating, "aaa", "xxx");
+print repeating;
+
+# ---- ТЕСТ 23: Строковые функции - trim ----
+print "=== ТЕСТ 23: trim ===";
+padded = "   spaces around   ";
+trim(padded);
+print padded;
+print strlen(padded);
+
+# ---- ТЕСТ 24: Присваивание результата строковой функции ----
+print "=== ТЕСТ 24: Строковые функции в выражениях ===";
+word = "Testing";
+word_len = strlen(word);
+print word_len;
+is_empty = empty(word);
+print is_empty;
+is_str = is_string(word);
+print is_str;
+found_pos = str_pos(word, "sting");
+print found_pos;
+
+# ---- ТЕСТ 25: Математические выражения в разных контекстах ----
+print "=== ТЕСТ 25: Сложные выражения ===";
+
+# Выражение с несколькими операциями
+print 2 + 3 * 4 - 1;
+
+# Степень правоассоциативна: 2^3^2 = 2^(3^2) = 2^9 = 512
+print 2 ^ 3 ^ 2;
+
+# Выражение с функциями
+print sqrt(add(9, 16));
+
+# Вычисление через переменные
+radius = 5;
+area = pi * radius ^ 2;
+print area;
+
+# ---- ТЕСТ 26: Цикл for с шагом += ----
+print "=== ТЕСТ 26: Цикл for с += ===";
+total = 0;
+for (k = 0; k < 10; k++) {
+    total += k;
+}
+print total;
+
+# ---- ТЕСТ 27: Функция возведения в степень (вложенный for) ----
+print "=== ТЕСТ 27: Функция my_pow ===";
+
+func my_pow(base, exp) {
+    result = 1;
+    for (i = 0; i < exp; i++) {
+        result = result * base;
+    }
+    return result;
+}
+print my_pow(2, 10);
+print my_pow(3, 5);
+print my_pow(10, 3);
+
+# ---- ТЕСТ 28: Функция с условием if ----
+print "=== ТЕСТ 28: Функция с if ===";
+
+func abs_val(x) {
+    if (x < 0) {
+        return -1 * x;
+    }
+    return x;
+}
+print abs_val(5);
+print abs_val(-5);
+
+# ---- ТЕСТ 29: Вывод строковых литералов через print ----
+print "=== ТЕСТ 29: Print литералы ===";
+print "Привет, мир!";
+print "MathLang v2.0";
+print "Тест специальных символов: 123 !@# $%&";
+
+# ---- ТЕСТ 30: Комментарии ----
+print "=== ТЕСТ 30: Комментарии ===";
+# Эта строка - комментарий и не должна ничего делать
+print "Комментарии работают - OK";
+# Ещё один комментарий
+
+# ---- ТЕСТ 31: Числа Фибоначчи ----
+print "=== ТЕСТ 31: Числа Фибоначчи ===";
+fib_a = 0;
+fib_b = 1;
+for (i = 0; i < 10; i++) {
+    print fib_a;
+    fib_temp = fib_a + fib_b;
+    fib_a = fib_b;
+    fib_b = fib_temp;
+}
+
+# ---- ТЕСТ 32: Массив и функция вместе ----
+print "=== ТЕСТ 32: Массив + функция ===";
+data = array(5);
+for (i = 0; i < 5; i++) {
+    data[i] = factorial(i + 1);
+}
+print data;
+
+# ============================================================
+print "=== ВСЕ ТЕСТЫ ЗАВЕРШЕНЫ ===";
+# ============================================================
