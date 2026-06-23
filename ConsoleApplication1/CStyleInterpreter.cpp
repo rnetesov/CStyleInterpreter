@@ -36,7 +36,7 @@ bool CStyleInterpreter::parseCondition() {
     skipSpaces();
 
     std::string op;
-    while (current() == '<' || current() == '>' || current() == '=') {
+    while (current() == '<' || current() == '>' || current() == '=' || current() == '!') {
         op += current();
         index++;
     }
@@ -50,6 +50,7 @@ bool CStyleInterpreter::parseCondition() {
     if (op == "<") return left < right;
     if (op == ">") return left > right;
     if (op == "==") return left == right;
+    if (op == "!=") return left != right;
     if (op == "<=") return left <= right;
     if (op == ">=") return left >= right;
 
