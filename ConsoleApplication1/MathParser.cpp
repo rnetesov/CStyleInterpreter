@@ -10,16 +10,16 @@ double CStyleInterpreter::parseUserFunctionCall(const std::string& name) {
         throw std::runtime_error("Unknown function: " + name);
     }
 
-    next(); // Пропускаем '('
+    next();
 
-    // 1. Поочередно считываем все переданные аргументы через запятую
+    // Поочередно считываем все переданные аргументы через запятую
     std::vector<double> arguments;
     if (current() != ')') {
         while (true) {
             arguments.push_back(parseExpression());
             skipSpaces();
             if (current() == ',') {
-                next(); // Пропускаем ',' и идем к следующему аргументу
+                next();
             }
             else if (current() == ')') {
                 break;
@@ -31,37 +31,28 @@ double CStyleInterpreter::parseUserFunctionCall(const std::string& name) {
     }
 
     if (current() != ')') throw std::runtime_error("Expected ')' at the end of function call");
-    next(); // Пропускаем ')'
+    next();
 
     UserFunction func = functions[name];
 
-    // Проверяем совпадение количества переданных аргументов с объявленными параметрами
     if (arguments.size() != func.paramNames.size()) {
         throw std::runtime_error("Function '" + name + "' expected " +
             std::to_string(func.paramNames.size()) + " arguments, but got " +
             std::to_string(arguments.size()));
     }
 
-    // Создаем изолированную локальную область видимости
     scopeStack.push_back({});
     returnStack.push_back(ip);
 
-    // 2. Записываем ВСЕ аргументы в локальный слой под их именами
     for (size_t i = 0; i < func.paramNames.size(); ++i) {
         scopeStack.back()[func.paramNames[i]] = arguments[i];
     }
 
-    size_t old_ip = ip;
     ip = func.bodyLineIdx;
-    std::string savedLine = currentLine;
-    size_t savedIndex = index;
+    ParserStateGuard guard(*this);
 
     lastReturnValue = 0.0;
 
-    std::vector<size_t> localWhileLoopStack;
-    std::vector<bool> localIsForLoopStack;
-
-    // Вычисляем точный конец функции по скобкам
     size_t scanIp = func.bodyLineIdx;
     int bracketDepth = 0;
     size_t functionEndLineIdx = lines.size();
@@ -83,62 +74,8 @@ double CStyleInterpreter::parseUserFunctionCall(const std::string& name) {
         throw std::runtime_error("Function '" + name + "' has no closing '}'");
     }
 
-    while (ip <= functionEndLineIdx && ip < lines.size()) {
-        std::string line = lines[ip];
+    executeBlock(functionEndLineIdx, true);
 
-        if (line.find("while") != std::string::npos && line.find("#") == std::string::npos) {
-            localWhileLoopStack.push_back(ip);
-            localIsForLoopStack.push_back(false);
-        }
-        if (line.find("for") != std::string::npos && line.find("#") == std::string::npos) {
-            localWhileLoopStack.push_back(ip);
-            localIsForLoopStack.push_back(true);
-        }
-
-        size_t currentExecutingLineIdx = ip;
-        ip++;
-
-        executeLine(currentExecutingLineIdx);
-
-        if (line.find("return") != std::string::npos && line.find("#") == std::string::npos) {
-            break;
-        }
-
-        if (line.find("}") != std::string::npos && !localWhileLoopStack.empty()) {
-            size_t startLoop = localWhileLoopStack.back();
-            bool isFor = localIsForLoopStack.back();
-            std::string loopLine = lines[startLoop];
-
-            if (isFor && !forStepStack.empty()) {
-                executeSingleLineFromString(forStepStack.back());
-            }
-
-            bool cond = false;
-            if (isFor) {
-                size_t firstSemi = loopLine.find(";");
-                size_t secondSemi = loopLine.find(";", firstSemi + 1);
-                std::string condPart = "(" + loopLine.substr(firstSemi + 1, secondSemi - firstSemi - 1) + ")";
-                cond = parseConditionFromString("while " + condPart);
-            }
-            else {
-                cond = parseConditionFromString(loopLine);
-            }
-
-            if (cond) {
-                ip = startLoop + 1;
-            }
-            else {
-                localWhileLoopStack.pop_back();
-                localIsForLoopStack.pop_back();
-                if (isFor && !forStepStack.empty()) {
-                    forStepStack.pop_back();
-                }
-            }
-        }
-    }
-
-    currentLine = savedLine;
-    index = savedIndex;
     ip = returnStack.back();
     returnStack.pop_back();
 
@@ -151,12 +88,7 @@ double CStyleInterpreter::parseFactor() {
     char c = current();
 
     if (std::isalpha(c) || c == '_') {
-        std::string name;
-        while (std::isalnum(current()) || current() == '_') {
-            name += current();
-            index++;
-        }
-        skipSpaces();
+        std::string name = parseIdentifier();
 
         if (name == "strlen")      return builtin_strlen();
         if (name == "empty")       return builtin_empty();
@@ -164,15 +96,21 @@ double CStyleInterpreter::parseFactor() {
         if (name == "str_pos")     return builtin_str_pos();
 
         if (current() == '(') {
-            if (name == "sin") { next(); double arg = parseExpression(); if (current() != ')') throw std::runtime_error("Expected ')'"); next(); return builtin_sin(arg); }
-            if (name == "cos") { next(); double arg = parseExpression(); if (current() != ')') throw std::runtime_error("Expected ')'"); next(); return builtin_cos(arg); }
-            if (name == "sqrt") { next(); double arg = parseExpression(); if (current() != ')') throw std::runtime_error("Expected ')'"); next(); return builtin_sqrt(arg); }
-            if (name == "rand") { next(); double arg = parseExpression(); if (current() != ')') throw std::runtime_error("Expected ')'"); next(); return builtin_rand(arg); }
-            if (name == "array") { next(); double arg = parseExpression(); if (current() != ')') throw std::runtime_error("Expected ')'"); next(); return arg; }
+            if (name == "sin")   return callBuiltinMathFunc(&CStyleInterpreter::builtin_sin);
+            if (name == "cos")   return callBuiltinMathFunc(&CStyleInterpreter::builtin_cos);
+            if (name == "sqrt")  return callBuiltinMathFunc(&CStyleInterpreter::builtin_sqrt);
+            if (name == "rand")  return callBuiltinMathFunc(&CStyleInterpreter::builtin_rand);
+            if (name == "round") return callBuiltinMathFunc(&CStyleInterpreter::builtin_round);
+            if (name == "floor") return callBuiltinMathFunc(&CStyleInterpreter::builtin_floor);
+            if (name == "ceil")  return callBuiltinMathFunc(&CStyleInterpreter::builtin_ceil);
 
-            if (name == "round") { next(); double arg = parseExpression(); if (current() != ')') throw std::runtime_error("Expected ')'"); next(); return builtin_round(arg); }
-            if (name == "floor") { next(); double arg = parseExpression(); if (current() != ')') throw std::runtime_error("Expected ')'"); next(); return builtin_floor(arg); }
-            if (name == "ceil") { next(); double arg = parseExpression(); if (current() != ')') throw std::runtime_error("Expected ')'"); next(); return builtin_ceil(arg); }
+            if (name == "array") {
+                next();
+                double arg = parseExpression();
+                if (current() != ')') throw std::runtime_error("Expected ')'");
+                next();
+                return arg;
+            }
 
             return parseUserFunctionCall(name);
         }

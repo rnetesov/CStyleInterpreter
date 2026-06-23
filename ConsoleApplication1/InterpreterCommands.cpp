@@ -6,19 +6,13 @@
 #include <limits>
 
 void CStyleInterpreter::executeLine(size_t lineIdx) {
-	// КРИТИЧЕСКОЕ АРХИТЕКТУРНОЕ ИСПРАВЛЕНИЕ:
-	// Сохраняем старое состояние, чтобы вложенные вызовы функций
-	// или шаги циклов for никогда не сбивали указатели парсера.
-	std::string savedLine = currentLine;
-	size_t savedIndex = index;
+	ParserStateGuard guard(*this);
 
 	currentLine = lines[lineIdx];
 	index = 0;
 	skipSpaces();
 
 	if (currentLine.empty() || current() == '#' || current() == '\0' || current() == '{') {
-		currentLine = savedLine;
-		index = savedIndex;
 		return;
 	}
 
@@ -30,23 +24,15 @@ void CStyleInterpreter::executeLine(size_t lineIdx) {
 				skipBlock();
 			}
 		}
-		currentLine = savedLine;
-		index = savedIndex;
 		return;
 	}
 
 	std::string firstWord;
 	if (std::isalpha(current()) || current() == '_') {
-		while (std::isalnum(current()) || current() == '_') {
-			firstWord += current();
-			index++;
-		}
+		firstWord = parseIdentifier();
 	}
-	skipSpaces();
 
 	if (firstWord.empty()) {
-		currentLine = savedLine;
-		index = savedIndex;
 		return;
 	}
 
@@ -91,23 +77,12 @@ void CStyleInterpreter::executeLine(size_t lineIdx) {
 			forStepStack.push_back(stepCmd + ";");
 		}
 
-		currentLine = savedLine;
-		index = savedIndex;
 		return;
 	}
 
 	// Команда INCLUDE
 	if (firstWord == "include") {
-		if (current() != '"') throw std::runtime_error("Expected opening double quote after include");
-		next();
-		std::string incFileName;
-		while (index < currentLine.length() && currentLine[index] != '"') {
-			incFileName += currentLine[index];
-			index++;
-		}
-		if (index >= currentLine.length()) throw std::runtime_error("Missing closing double quote in include");
-		next();
-		skipSpaces();
+		std::string incFileName = parseStringLiteral();
 		if (current() != ';') throw std::runtime_error("Missing ';' at the end of include command");
 
 		std::ifstream incFile(incFileName);
@@ -121,8 +96,6 @@ void CStyleInterpreter::executeLine(size_t lineIdx) {
 		incFile.close();
 		lines.insert(lines.begin() + ip, newLines.begin(), newLines.end());
 
-		currentLine = savedLine;
-		index = savedIndex;
 		return;
 	}
 
@@ -131,43 +104,28 @@ void CStyleInterpreter::executeLine(size_t lineIdx) {
 		double val = parseExpression();
 		if (current() != ';') throw std::runtime_error("Missing ';' at the end of return command");
 		lastReturnValue = val;
-
-		currentLine = savedLine;
-		index = savedIndex;
 		return;
 	}
 
 	// Команда FUNC
-	// --- ОБНОВЛЕННАЯ РЕГИСТРАЦИЯ FUNC: Теперь поддерживает список параметров через запятую! ---
 	if (firstWord == "func") {
-		std::string funcName;
-		while (std::isalnum(current()) || current() == '_') {
-			funcName += current();
-			index++;
-		}
-		skipSpaces();
+		std::string funcName = parseIdentifier();
 		if (current() != '(') throw std::runtime_error("Expected '(' after function name");
-		next(); // Пропускаем '('
+		next();
 		skipSpaces();
 
 		UserFunction newFunc;
 		newFunc.bodyLineIdx = ip;
 
-		// Считываем список параметров через запятую
 		if (current() != ')') {
 			while (true) {
-				std::string paramName;
-				while (std::isalnum(current()) || current() == '_') {
-					paramName += current();
-					index++;
-				}
-				skipSpaces();
+				std::string paramName = parseIdentifier();
 				if (paramName.empty()) throw std::runtime_error("Expected parameter name in function definition");
 
-				newFunc.paramNames.push_back(paramName); // Добавляем имя параметра в вектор
+				newFunc.paramNames.push_back(paramName);
 
 				if (current() == ',') {
-					next(); // Пропускаем ',' и идем к следующему параметру
+					next();
 					skipSpaces();
 				}
 				else if (current() == ')') {
@@ -180,29 +138,17 @@ void CStyleInterpreter::executeLine(size_t lineIdx) {
 		}
 
 		if (current() != ')') throw std::runtime_error("Expected ')' after parameter list");
-		next(); // Пропускаем ')'
+		next();
 		skipSpaces();
 
 		functions[funcName] = newFunc;
 		skipBlock();
-
-		currentLine = savedLine;
-		index = savedIndex;
 		return;
 	}
 
-	// Умный всеядный PRINT
 	if (firstWord == "print") {
 		if (current() == '"') {
-			index++;
-			std::string literalText;
-			while (index < currentLine.length() && currentLine[index] != '"') {
-				literalText += currentLine[index];
-				index++;
-			}
-			if (index >= currentLine.length()) throw std::runtime_error("Missing closing double quote");
-			index++;
-			skipSpaces();
+			std::string literalText = parseStringLiteral();
 			if (current() != ';') throw std::runtime_error("Missing ';' at the end of print command");
 			std::cout << literalText << std::endl;
 		}
@@ -221,9 +167,6 @@ void CStyleInterpreter::executeLine(size_t lineIdx) {
 					skipSpaces();
 					if (current() != ';') throw std::runtime_error("Missing ';' after print command");
 					std::cout << std::get<std::string>(var) << std::endl;
-
-					currentLine = savedLine;
-					index = savedIndex;
 					return;
 				}
 				else if (std::holds_alternative<std::vector<double>>(var)) {
@@ -237,9 +180,6 @@ void CStyleInterpreter::executeLine(size_t lineIdx) {
 						if (i + 1 < arr.size()) std::cout << ", ";
 					}
 					std::cout << "]" << std::endl;
-
-					currentLine = savedLine;
-					index = savedIndex;
 					return;
 				}
 			}
@@ -249,19 +189,12 @@ void CStyleInterpreter::executeLine(size_t lineIdx) {
 			std::cout << value << std::endl;
 		}
 
-		currentLine = savedLine;
-		index = savedIndex;
 		return;
 	}
 
 	// Команда INPUT
 	if (firstWord == "input") {
-		std::string varName;
-		while (std::isalnum(current()) || current() == '_') {
-			varName += current();
-			index++;
-		}
-		skipSpaces();
+		std::string varName = parseIdentifier();
 		if (varName.empty()) throw std::runtime_error("Expected variable name after 'input'");
 		if (current() != ';') throw std::runtime_error("Missing ';' at the end of input command");
 
@@ -275,9 +208,6 @@ void CStyleInterpreter::executeLine(size_t lineIdx) {
 		}
 
 		setVariable(varName, userVal);
-
-		currentLine = savedLine;
-		index = savedIndex;
 		return;
 	}
 
@@ -291,15 +221,10 @@ void CStyleInterpreter::executeLine(size_t lineIdx) {
 				ip++;
 			}
 		}
-
-		currentLine = savedLine;
-		index = savedIndex;
 		return;
 	}
 
 	if (firstWord == "else") {
-		currentLine = savedLine;
-		index = savedIndex;
 		return;
 	}
 
@@ -309,27 +234,15 @@ void CStyleInterpreter::executeLine(size_t lineIdx) {
 		if (!condition) {
 			skipBlock();
 		}
-
-		currentLine = savedLine;
-		index = savedIndex;
 		return;
 	}
 
-	// Автономные вызовы строковых утилит
 	if (firstWord == "trim" && current() == '(') {
 		builtin_trim();
-		index = currentLine.length();
-
-		currentLine = savedLine;
-		index = savedIndex;
 		return;
 	}
 	if (firstWord == "str_replace" && current() == '(') {
 		builtin_str_replace();
-		index = currentLine.length();
-
-		currentLine = savedLine;
-		index = savedIndex;
 		return;
 	}
 
@@ -337,16 +250,11 @@ void CStyleInterpreter::executeLine(size_t lineIdx) {
 		index = 0;
 		parseFactor();
 		if (current() != ';') throw std::runtime_error("Missing ';' after function call");
-
-		currentLine = savedLine;
-		index = savedIndex;
 		return;
 	}
 
 	if (!firstWord.empty()) {
 		processVariableAssignment(firstWord);
-		currentLine = savedLine;
-		index = savedIndex;
 		return;
 	}
 	throw std::runtime_error("Unknown syntax: " + firstWord);

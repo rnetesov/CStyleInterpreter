@@ -33,17 +33,7 @@ void CStyleInterpreter::processVariableAssignment(const std::string& varName) {
         skipSpaces();
 
         if (current() == '"') {
-            index++;
-            std::string strLit;
-            while (index < currentLine.length() && currentLine[index] != '"') {
-                strLit += currentLine[index];
-                index++;
-            }
-            if (index >= currentLine.length()) {
-                throw std::runtime_error("Missing closing double quote in string assignment to '" + varName + "'");
-            }
-            index++;
-            skipSpaces();
+            std::string strLit = parseStringLiteral();
             setVariable(varName, strLit);
             return;
         }

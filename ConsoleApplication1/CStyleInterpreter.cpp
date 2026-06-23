@@ -2,8 +2,9 @@
 #include <iostream>
 #include <cctype>
 #include <stdexcept>
-#include <cstdlib>   
-#include <ctime>     
+#include <cstdlib>
+#include <ctime>
+#include <climits>
 
 CStyleInterpreter::CStyleInterpreter() {
     scopeStack.push_back({}); // Глобальный уровень видимости
@@ -26,6 +27,38 @@ void CStyleInterpreter::skipSpaces() {
     while (index < currentLine.length() && std::isspace(currentLine[index])) {
         index++;
     }
+}
+
+std::string CStyleInterpreter::parseIdentifier() {
+    std::string name;
+    while (std::isalnum(current()) || current() == '_') {
+        name += current();
+        index++;
+    }
+    skipSpaces();
+    return name;
+}
+
+std::string CStyleInterpreter::parseStringLiteral() {
+    if (current() != '"') throw std::runtime_error("Expected opening double quote");
+    index++;
+    std::string lit;
+    while (index < currentLine.length() && currentLine[index] != '"') {
+        lit += currentLine[index];
+        index++;
+    }
+    if (index >= currentLine.length()) throw std::runtime_error("Missing closing double quote");
+    index++;
+    skipSpaces();
+    return lit;
+}
+
+double CStyleInterpreter::callBuiltinMathFunc(double (CStyleInterpreter::*func)(double)) {
+    next();
+    double arg = parseExpression();
+    if (current() != ')') throw std::runtime_error("Expected ')'");
+    next();
+    return (this->*func)(arg);
 }
 
 bool CStyleInterpreter::parseCondition() {
@@ -57,30 +90,18 @@ bool CStyleInterpreter::parseCondition() {
 }
 
 bool CStyleInterpreter::parseConditionFromString(const std::string& condLine) {
-    // Полностью изолируем текстовый контекст класса
-    std::string savedLine = currentLine;
-    size_t savedIndex = index;
+    ParserStateGuard guard(*this);
 
     currentLine = condLine;
 
-    // ИСПРАВЛЕНИЕ: Находим точное начало скобки условия (, игнорируя слова while/if
     size_t openParenIdx = condLine.find("(");
     if (openParenIdx == std::string::npos) {
-        currentLine = savedLine;
-        index = savedIndex;
         throw std::runtime_error("Expected '(' in condition: " + condLine);
     }
     index = openParenIdx;
 
     skipSpaces();
-    // Вычисляем условие в изолированном текстовом буфере
-    bool result = parseCondition();
-
-    // Восстанавливаем глобальный контекст обратно
-    currentLine = savedLine;
-    index = savedIndex;
-
-    return result;
+    return parseCondition();
 }
 
 void CStyleInterpreter::skipBlock() {
@@ -98,8 +119,7 @@ void CStyleInterpreter::skipBlock() {
 }
 
 void CStyleInterpreter::executeSingleLineFromString(const std::string& lineText) {
-    std::string savedLine = currentLine;
-    size_t savedIndex = index;
+    ParserStateGuard guard(*this);
 
     currentLine = lineText;
     index = 0;
@@ -107,19 +127,12 @@ void CStyleInterpreter::executeSingleLineFromString(const std::string& lineText)
 
     std::string firstWord;
     if (std::isalpha(current()) || current() == '_') {
-        while (std::isalnum(current()) || current() == '_') {
-            firstWord += current();
-            index++;
-        }
+        firstWord = parseIdentifier();
     }
-    skipSpaces();
 
     if (!firstWord.empty()) {
         processVariableAssignment(firstWord);
     }
-
-    currentLine = savedLine;
-    index = savedIndex;
 }
 
 bool CStyleInterpreter::varExists(const std::string& name) {
@@ -147,29 +160,32 @@ void CStyleInterpreter::setVariable(const std::string& name, const std::variant<
     scopeStack.back()[name] = value;
 }
 
-void CStyleInterpreter::run(const std::vector<std::string>& sourceLines) {
-    lines = sourceLines;
-    ip = 0;
-    std::vector<size_t> whileLoopStack;
-    std::vector<bool> isForLoopStack;
+void CStyleInterpreter::executeBlock(size_t endLineIdx, bool breakOnReturn) {
+    std::vector<size_t> loopStack;
+    std::vector<bool> isForStack;
 
-    while (ip < lines.size()) {
+    while (ip <= endLineIdx && ip < lines.size()) {
         std::string line = lines[ip];
+
         if (line.find("while") != std::string::npos && line.find("#") == std::string::npos) {
-            whileLoopStack.push_back(ip);
-            isForLoopStack.push_back(false);
+            loopStack.push_back(ip);
+            isForStack.push_back(false);
         }
         if (line.find("for") != std::string::npos && line.find("#") == std::string::npos) {
-            whileLoopStack.push_back(ip);
-            isForLoopStack.push_back(true);
+            loopStack.push_back(ip);
+            isForStack.push_back(true);
         }
-        ip++;
 
+        ip++;
         executeLine(ip - 1);
 
-        if (line.find("}") != std::string::npos && !whileLoopStack.empty()) {
-            size_t startLoop = whileLoopStack.back();
-            bool isFor = isForLoopStack.back();
+        if (breakOnReturn && line.find("return") != std::string::npos && line.find("#") == std::string::npos) {
+            break;
+        }
+
+        if (line.find("}") != std::string::npos && !loopStack.empty()) {
+            size_t startLoop = loopStack.back();
+            bool isFor = isForStack.back();
             std::string loopLine = lines[startLoop];
 
             if (isFor && !forStepStack.empty()) {
@@ -191,12 +207,18 @@ void CStyleInterpreter::run(const std::vector<std::string>& sourceLines) {
                 ip = startLoop + 1;
             }
             else {
-                whileLoopStack.pop_back();
-                isForLoopStack.pop_back();
+                loopStack.pop_back();
+                isForStack.pop_back();
                 if (isFor && !forStepStack.empty()) {
                     forStepStack.pop_back();
                 }
             }
         }
     }
+}
+
+void CStyleInterpreter::run(const std::vector<std::string>& sourceLines) {
+    lines = sourceLines;
+    ip = 0;
+    executeBlock(SIZE_MAX, false);
 }
