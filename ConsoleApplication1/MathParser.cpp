@@ -200,14 +200,18 @@ double CStyleInterpreter::parsePower() {
 
 double CStyleInterpreter::parseTerm() {
     double result = parsePower();
-    while (current() == '*' || current() == '/') {
+    while (current() == '*' || current() == '/' || current() == '%') {
         char op = current();
         next();
         double nextPower = parsePower();
         if (op == '*') result *= nextPower;
-        else {
+        else if (op == '/') {
             if (nextPower == 0.0) throw std::runtime_error("Division by zero");
             result /= nextPower;
+        }
+        else {
+            if (nextPower == 0.0) throw std::runtime_error("Modulo by zero");
+            result = std::fmod(result, nextPower);
         }
     }
     return result;
