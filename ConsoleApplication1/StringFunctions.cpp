@@ -42,7 +42,9 @@ double CStyleInterpreter::builtin_strlen() {
     next(); // Пропускаем ')'
     skipSpaces();
 
-    if (!varExists(varName)) return 0;
+    if (!varExists(varName)) {
+        throw std::runtime_error("strlen: variable '" + varName + "' is not defined");
+    }
 
     auto& var = getVarRef(varName);
     if (std::holds_alternative<std::string>(var)) {
@@ -51,7 +53,10 @@ double CStyleInterpreter::builtin_strlen() {
     if (std::holds_alternative<double>(var)) {
         return static_cast<double>(std::to_string(std::get<double>(var)).length());
     }
-    return 0;
+    if (std::holds_alternative<std::vector<double>>(var)) {
+        return static_cast<double>(std::get<std::vector<double>>(var).size());
+    }
+    throw std::runtime_error("strlen: unsupported variable type for '" + varName + "'");
 }
 
 // Реализация функции empty() через области видимости
@@ -61,7 +66,9 @@ double CStyleInterpreter::builtin_empty() {
     next(); // Пропускаем ')'
     skipSpaces();
 
-    if (!varExists(varName)) return 1;
+    if (!varExists(varName)) {
+        throw std::runtime_error("empty: variable '" + varName + "' is not defined");
+    }
 
     auto& var = getVarRef(varName);
     if (std::holds_alternative<std::string>(var)) {
@@ -73,7 +80,7 @@ double CStyleInterpreter::builtin_empty() {
     if (std::holds_alternative<std::vector<double>>(var)) {
         return std::get<std::vector<double>>(var).empty() ? 1.0 : 0.0;
     }
-    return 1;
+    throw std::runtime_error("empty: unsupported variable type for '" + varName + "'");
 }
 
 // Реализация функции is_string() через области видимости
@@ -83,7 +90,9 @@ double CStyleInterpreter::builtin_is_string() {
     next(); // Пропускаем ')'
     skipSpaces();
 
-    if (!varExists(varName)) return 0;
+    if (!varExists(varName)) {
+        throw std::runtime_error("is_string: variable '" + varName + "' is not defined");
+    }
     return std::holds_alternative<std::string>(getVarRef(varName)) ? 1.0 : 0.0;
 }
 

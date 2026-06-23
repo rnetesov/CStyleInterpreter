@@ -2,7 +2,8 @@
 #include <iostream>
 #include <cctype>
 #include <stdexcept>
-#include <fstream> 
+#include <fstream>
+#include <limits>
 
 void CStyleInterpreter::executeLine(size_t lineIdx) {
 	// КРИТИЧЕСКОЕ АРХИТЕКТУРНОЕ ИСПРАВЛЕНИЕ:
@@ -184,6 +185,9 @@ void CStyleInterpreter::executeLine(size_t lineIdx) {
 
 		functions[funcName] = newFunc;
 		skipBlock();
+
+		currentLine = savedLine;
+		index = savedIndex;
 		return;
 	}
 
@@ -264,6 +268,11 @@ void CStyleInterpreter::executeLine(size_t lineIdx) {
 		double userVal;
 		std::cout << "[INPUT FOR " << varName << "]: ";
 		std::cin >> userVal;
+		if (std::cin.fail()) {
+			std::cin.clear();
+			std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+			throw std::runtime_error("Invalid input: expected a numeric value for variable '" + varName + "'");
+		}
 
 		setVariable(varName, userVal);
 
@@ -336,8 +345,9 @@ void CStyleInterpreter::executeLine(size_t lineIdx) {
 
 	if (!firstWord.empty()) {
 		processVariableAssignment(firstWord);
-		index = savedIndex;return;
+		currentLine = savedLine;
+		index = savedIndex;
+		return;
 	}
-	throw
-		std::runtime_error("Unknown syntax: " + firstWord);
+	throw std::runtime_error("Unknown syntax: " + firstWord);
 }

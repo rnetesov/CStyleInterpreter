@@ -79,6 +79,10 @@ double CStyleInterpreter::parseUserFunctionCall(const std::string& name) {
         scanIp++;
     }
 
+    if (functionEndLineIdx == lines.size()) {
+        throw std::runtime_error("Function '" + name + "' has no closing '}'");
+    }
+
     while (ip <= functionEndLineIdx && ip < lines.size()) {
         std::string line = lines[ip];
 

@@ -65,12 +65,12 @@ bool CStyleInterpreter::parseConditionFromString(const std::string& condLine) {
 
     // ИСПРАВЛЕНИЕ: Находим точное начало скобки условия (, игнорируя слова while/if
     size_t openParenIdx = condLine.find("(");
-    if (openParenIdx != std::string::npos) {
-        index = openParenIdx;
+    if (openParenIdx == std::string::npos) {
+        currentLine = savedLine;
+        index = savedIndex;
+        throw std::runtime_error("Expected '(' in condition: " + condLine);
     }
-    else {
-        index = 0;
-    }
+    index = openParenIdx;
 
     skipSpaces();
     // Вычисляем условие в изолированном текстовом буфере
@@ -94,6 +94,7 @@ void CStyleInterpreter::skipBlock() {
             depth--;
         }
     }
+    throw std::runtime_error("Unmatched '{': reached end of source without finding closing '}'");
 }
 
 void CStyleInterpreter::executeSingleLineFromString(const std::string& lineText) {
