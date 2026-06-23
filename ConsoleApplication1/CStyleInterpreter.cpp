@@ -84,6 +84,11 @@ bool CStyleInterpreter::parseConditionFromString(const std::string& condLine) {
 }
 
 void CStyleInterpreter::skipBlock() {
+    // Handle '{' on its own line (Allman brace style)
+    if (ip < lines.size() && lines[ip].find("{") != std::string::npos
+        && lines[ip].find("}") == std::string::npos) {
+        ip++;
+    }
     int depth = 0;
     while (ip < lines.size()) {
         std::string l = lines[ip];

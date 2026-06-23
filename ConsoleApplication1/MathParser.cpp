@@ -66,6 +66,12 @@ double CStyleInterpreter::parseUserFunctionCall(const std::string& name) {
     int bracketDepth = 0;
     size_t functionEndLineIdx = lines.size();
 
+    // Handle '{' on its own line (Allman brace style)
+    if (scanIp < lines.size() && lines[scanIp].find("{") != std::string::npos
+        && lines[scanIp].find("}") == std::string::npos) {
+        scanIp++;
+    }
+
     while (scanIp < lines.size()) {
         std::string l = lines[scanIp];
         if (l.find("{") != std::string::npos) bracketDepth++;
