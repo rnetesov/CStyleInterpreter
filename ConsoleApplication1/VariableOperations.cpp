@@ -107,6 +107,55 @@ void CStyleInterpreter::processVariableAssignment(const std::string& varName) {
             throw std::runtime_error("Variable '" + varName + "' is not initialized");
         }
     }
+    else if (current() == '-') {
+        next();
+        if (current() == '=') {
+            next();
+            double value = parseExpression();
+            if (varExists(varName)) {
+                auto& var = getVarRef(varName);
+                if (std::holds_alternative<double>(var)) {
+                    var = std::get<double>(var) - value;
+                }
+                else throw std::runtime_error("Cannot use -= on this variable type");
+                return;
+            }
+            throw std::runtime_error("Variable '" + varName + "' is not initialized");
+        }
+    }
+    else if (current() == '*') {
+        next();
+        if (current() == '=') {
+            next();
+            double value = parseExpression();
+            if (varExists(varName)) {
+                auto& var = getVarRef(varName);
+                if (std::holds_alternative<double>(var)) {
+                    var = std::get<double>(var) * value;
+                }
+                else throw std::runtime_error("Cannot use *= on this variable type");
+                return;
+            }
+            throw std::runtime_error("Variable '" + varName + "' is not initialized");
+        }
+    }
+    else if (current() == '/') {
+        next();
+        if (current() == '=') {
+            next();
+            double value = parseExpression();
+            if (value == 0) throw std::runtime_error("Division by zero in /= for variable '" + varName + "'");
+            if (varExists(varName)) {
+                auto& var = getVarRef(varName);
+                if (std::holds_alternative<double>(var)) {
+                    var = std::get<double>(var) / value;
+                }
+                else throw std::runtime_error("Cannot use /= on this variable type");
+                return;
+            }
+            throw std::runtime_error("Variable '" + varName + "' is not initialized");
+        }
+    }
 
     throw std::runtime_error("Unknown syntax after variable name: " + varName);
 }
