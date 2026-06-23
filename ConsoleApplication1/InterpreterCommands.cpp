@@ -23,6 +23,7 @@ void CStyleInterpreter::executeLine(size_t lineIdx) {
 	}
 
 	if (current() == '}') {
+		// Skip all remaining else-if / else branches (the taken branch already executed)
 		bool hasElse = false;
 		if (currentLine.find("else") != std::string::npos) {
 			hasElse = true;
@@ -30,8 +31,15 @@ void CStyleInterpreter::executeLine(size_t lineIdx) {
 			ip++;
 			hasElse = true;
 		}
-		if (hasElse) {
+		while (hasElse) {
 			skipBlock();
+			hasElse = false;
+			if (ip > 0 && ip - 1 < lines.size() && lines[ip - 1].find("else") != std::string::npos) {
+				hasElse = true;
+			} else if (ip < lines.size() && lines[ip].find("else") != std::string::npos) {
+				ip++;
+				hasElse = true;
+			}
 		}
 		currentLine = savedLine;
 		index = savedIndex;
@@ -298,8 +306,40 @@ void CStyleInterpreter::executeLine(size_t lineIdx) {
 		skipSpaces();
 		if (!condition) {
 			skipBlock();
-			if (ip < lines.size() && lines[ip].find("else") != std::string::npos) {
-				ip++;
+			// Handle else-if / else chain
+			while (true) {
+				std::string elseLineText;
+
+				// Check closing '}' line for inline else (e.g., "} else if (...) {")
+				if (ip > 0 && ip - 1 < lines.size() && lines[ip - 1].find("else") != std::string::npos) {
+					elseLineText = lines[ip - 1];
+				}
+				// Check next line for separate else/else-if
+				else if (ip < lines.size() && lines[ip].find("else") != std::string::npos) {
+					elseLineText = lines[ip];
+					ip++;
+				}
+
+				if (elseLineText.empty()) break;
+
+				// Determine if it's "else if" or plain "else"
+				size_t elsePos = elseLineText.find("else");
+				std::string afterElse = elseLineText.substr(elsePos + 4);
+				size_t nonSpace = afterElse.find_first_not_of(" \t");
+				bool isElseIf = (nonSpace != std::string::npos && afterElse.substr(nonSpace, 2) == "if");
+
+				if (isElseIf) {
+					bool elseIfCond = parseConditionFromString(elseLineText);
+					if (elseIfCond) {
+						break; // Take this branch
+					} else {
+						skipBlock();
+						continue; // Check next branch
+					}
+				} else {
+					// Plain else — let body execute
+					break;
+				}
 			}
 		}
 
