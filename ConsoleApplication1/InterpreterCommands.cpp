@@ -215,6 +215,13 @@ void CStyleInterpreter::executeLine(size_t lineIdx) {
 			}
 
 			if (!varCheck.empty() && varExists(varCheck)) {
+				// Peek ahead: if next non-space char is '[', this is array element access (arr[i]),
+				// so fall through to parseExpression() instead of printing the whole variable.
+				size_t peekIdx = checkIdx;
+				while (peekIdx < currentLine.length() && std::isspace(currentLine[peekIdx])) peekIdx++;
+				bool isIndexAccess = (peekIdx < currentLine.length() && currentLine[peekIdx] == '[');
+
+				if (!isIndexAccess) {
 				auto& var = getVarRef(varCheck);
 				if (std::holds_alternative<std::string>(var)) {
 					index = checkIdx;
@@ -241,6 +248,7 @@ void CStyleInterpreter::executeLine(size_t lineIdx) {
 					currentLine = savedLine;
 					index = savedIndex;
 					return;
+				}
 				}
 			}
 
