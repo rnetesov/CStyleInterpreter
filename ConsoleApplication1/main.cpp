@@ -52,16 +52,22 @@ int main(int argc, char* argv[]) {
 
     // Запускаем наш интерпретатор
     CStyleInterpreter interpreter;
+    int exitCode = 0;
     try {
         interpreter.run(programLines);
     }
     catch (const std::exception& e) {
         std::cerr << "\n[ОШИБКА ВРЕМЕНИ ВЫПОЛНЕНИЯ]: " << e.what() << std::endl;
+        exitCode = 1;
+    }
+    catch (...) {
+        std::cerr << "\n[ОШИБКА ВРЕМЕНИ ВЫПОЛНЕНИЯ]: Unknown error occurred" << std::endl;
+        exitCode = 1;
     }
 
     std::cout << "---------------------------------------------------" << std::endl;
     std::cout << "\nПрограмма завершена. Нажмите Enter для выхода...";
     std::cin.get();
 
-    return 0;
+    return exitCode;
 }
