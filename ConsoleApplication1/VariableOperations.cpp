@@ -18,6 +18,8 @@ void CStyleInterpreter::processVariableAssignment(const std::string& varName) {
             auto& var = getVarRef(varName);
             if (std::holds_alternative<std::vector<double>>(var)) {
                 auto& arr = std::get<std::vector<double>>(var);
+                if (idxVal < 0)
+                    throw std::runtime_error("Negative array index");
                 size_t i = static_cast<size_t>(idxVal);
                 if (i >= arr.size()) throw std::runtime_error("Array index out of bounds");
                 arr[i] = value;
@@ -40,6 +42,10 @@ void CStyleInterpreter::processVariableAssignment(const std::string& varName) {
 
         if (currentLine.find("array(") != std::string::npos) {
             double size = parseExpression();
+            if (size < 0)
+                throw std::runtime_error("Array size cannot be negative");
+            if (size > 1000000)
+                throw std::runtime_error("Array size exceeds maximum allowed (1000000)");
             std::vector<double> newArr(static_cast<size_t>(size), 0.0);
             setVariable(varName, newArr);
             return;

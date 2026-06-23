@@ -1,2 +1,18 @@
-.vs/ 
+.vs/
 build/
+
+# Build outputs
+x64/
+ConsoleApplication1/x64/
+
+# Visual Studio intermediate files
+*.obj
+*.pdb
+*.ilk
+*.idb
+*.exe
+*.log
+*.tlog
+*.recipe
+*.lastbuildstate
+*.FileListAbsolute.txt

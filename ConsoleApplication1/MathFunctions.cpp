@@ -2,6 +2,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <cstdlib>
+#include <climits>
 
 double CStyleInterpreter::builtin_sin(double arg) {
     return std::sin(arg);
@@ -21,6 +22,9 @@ double CStyleInterpreter::builtin_sqrt(double arg) {
 double CStyleInterpreter::builtin_rand(double arg) {
     if (arg < 1) {
         throw std::runtime_error("Argument for rand() must be 1 or greater");
+    }
+    if (arg > static_cast<double>(INT_MAX)) {
+        throw std::runtime_error("Argument for rand() exceeds maximum integer range");
     }
     return (std::rand() % static_cast<int>(arg)) + 1;
 }
