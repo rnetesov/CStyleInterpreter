@@ -49,6 +49,7 @@ private:
     std::string parseStringLiteral();
     double callBuiltinMathFunc(double (CStyleInterpreter::*func)(double));
     void executeBlock(size_t endLineIdx, bool breakOnReturn);
+    static void expandInlineBlocks(std::vector<std::string>& src);
 
     // --- Утилиты сканирования строки (CStyleInterpreter.cpp) ---
     char current() const;
