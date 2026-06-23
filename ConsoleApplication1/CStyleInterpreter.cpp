@@ -84,10 +84,16 @@ bool CStyleInterpreter::parseConditionFromString(const std::string& condLine) {
 }
 
 void CStyleInterpreter::skipBlock() {
-    // Handle '{' on its own line (Allman brace style)
-    if (ip < lines.size() && lines[ip].find("{") != std::string::npos
-        && lines[ip].find("}") == std::string::npos) {
-        ip++;
+    // Handle '{' on its own line (Allman brace style):
+    // only skip if the line contains nothing but whitespace and '{'
+    if (ip < lines.size()) {
+        const std::string& firstLine = lines[ip];
+        bool isStandaloneBrace = false;
+        for (char c : firstLine) {
+            if (c == '{') { isStandaloneBrace = true; break; }
+            else if (!std::isspace(c)) break;
+        }
+        if (isStandaloneBrace) ip++;
     }
     int depth = 0;
     while (ip < lines.size()) {

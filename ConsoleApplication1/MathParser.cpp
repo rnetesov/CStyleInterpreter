@@ -66,10 +66,15 @@ double CStyleInterpreter::parseUserFunctionCall(const std::string& name) {
     int bracketDepth = 0;
     size_t functionEndLineIdx = lines.size();
 
-    // Handle '{' on its own line (Allman brace style)
-    if (scanIp < lines.size() && lines[scanIp].find("{") != std::string::npos
-        && lines[scanIp].find("}") == std::string::npos) {
-        scanIp++;
+    // Handle '{' on its own line (Allman brace style):
+    // only skip if the line contains nothing but whitespace and '{'
+    if (scanIp < lines.size()) {
+        bool isStandaloneBrace = false;
+        for (char c : lines[scanIp]) {
+            if (c == '{') { isStandaloneBrace = true; break; }
+            else if (!std::isspace(c)) break;
+        }
+        if (isStandaloneBrace) scanIp++;
     }
 
     while (scanIp < lines.size()) {
