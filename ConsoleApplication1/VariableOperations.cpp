@@ -109,7 +109,19 @@ void CStyleInterpreter::processVariableAssignment(const std::string& varName) {
     }
     else if (current() == '-') {
         next();
-        if (current() == '=') {
+        if (current() == '-') {
+            next();
+            if (varExists(varName)) {
+                auto& var = getVarRef(varName);
+                if (std::holds_alternative<double>(var)) {
+                    var = std::get<double>(var) - 1;
+                }
+                else throw std::runtime_error("Cannot decrement this variable type");
+                return;
+            }
+            throw std::runtime_error("Variable '" + varName + "' is not initialized");
+        }
+        else if (current() == '=') {
             next();
             double value = parseExpression();
             if (varExists(varName)) {
