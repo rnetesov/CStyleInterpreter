@@ -246,7 +246,12 @@ void CStyleInterpreter::executeBlock(size_t endLineIdx, bool breakOnReturn) {
         }
 
         ip++;
-        executeLine(ip - 1);
+        try {
+            executeLine(ip - 1);
+        } catch (const std::exception& e) {
+            size_t origLine = (ip - 1 < originalLineNumbers.size()) ? originalLineNumbers[ip - 1] : ip;
+            throw std::runtime_error("Line " + std::to_string(origLine) + ": " + e.what());
+        }
 
         if (breakOnReturn && line.find("return") != std::string::npos && line.find("#") == std::string::npos) {
             break;
@@ -378,7 +383,7 @@ void CStyleInterpreter::executeBlock(size_t endLineIdx, bool breakOnReturn) {
     }
 }
 
-void CStyleInterpreter::expandInlineBlocks(std::vector<std::string>& src) {
+void CStyleInterpreter::expandInlineBlocks(std::vector<std::string>& src, std::vector<size_t>& lineMap) {
     bool changed = true;
     while (changed) {
         changed = false;
@@ -419,12 +424,17 @@ void CStyleInterpreter::expandInlineBlocks(std::vector<std::string>& src) {
             // Trim trailing whitespace from 'after'
             size_t ae = after.find_last_not_of(" \t");
             if (ae != std::string::npos) after = after.substr(0, ae + 1);
+            // Remember original line number before replacing
+            size_t origLine = lineMap[i];
             std::vector<std::string> replacement;
             replacement.push_back(before);
             replacement.push_back("    " + content);
             replacement.push_back(after);
             src.erase(src.begin() + i);
             src.insert(src.begin() + i, replacement.begin(), replacement.end());
+            // Update line map: all replacement lines map to same original line
+            lineMap.erase(lineMap.begin() + i);
+            lineMap.insert(lineMap.begin() + i, 3, origLine);
             changed = true;
             break; // restart scan
         }
@@ -433,7 +443,12 @@ void CStyleInterpreter::expandInlineBlocks(std::vector<std::string>& src) {
 
 void CStyleInterpreter::run(const std::vector<std::string>& sourceLines) {
     lines = sourceLines;
-    expandInlineBlocks(lines);
+    // Initialize original line number mapping (1-based)
+    originalLineNumbers.resize(lines.size());
+    for (size_t i = 0; i < lines.size(); i++) {
+        originalLineNumbers[i] = i + 1;
+    }
+    expandInlineBlocks(lines, originalLineNumbers);
     ip = 0;
     executeBlock(SIZE_MAX, false);
 }
