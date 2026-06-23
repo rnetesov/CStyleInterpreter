@@ -220,7 +220,7 @@ void CStyleInterpreter::executeLine(size_t lineIdx) {
 		return;
 	}
 
-	// Команда INPUT
+	// Команда INPUT (числовой ввод)
 	if (firstWord == "input") {
 		std::string varName = parseIdentifier();
 		if (varName.empty()) throw std::runtime_error("Expected variable name after 'input'");
@@ -236,6 +236,21 @@ void CStyleInterpreter::executeLine(size_t lineIdx) {
 		}
 
 		setVariable(varName, userVal);
+		return;
+	}
+
+	// Команда INPUTS (строковый ввод)
+	if (firstWord == "inputs") {
+		std::string varName = parseIdentifier();
+		if (varName.empty()) throw std::runtime_error("Expected variable name after 'inputs'");
+		if (current() != ';') throw std::runtime_error("Missing ';' at the end of inputs command");
+
+		std::string userStr;
+		std::cout << "[INPUT STRING FOR " << varName << "]: ";
+		std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+		std::getline(std::cin, userStr);
+
+		setVariable(varName, userStr);
 		return;
 	}
 
