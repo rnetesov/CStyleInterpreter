@@ -61,10 +61,31 @@ double CStyleInterpreter::callBuiltinMathFunc(double (CStyleInterpreter::*func)(
     return (this->*func)(arg);
 }
 
-bool CStyleInterpreter::parseCondition() {
-    if (current() != '(') throw std::runtime_error("Expected '(' for condition");
-    next();
+bool CStyleInterpreter::parseComparison() {
+    // Handle ! prefix (logical NOT)
+    if (current() == '!') {
+        index++;
+        skipSpaces();
+        if (current() == '(') {
+            next();
+            bool val = parseLogicalOr();
+            if (current() != ')') throw std::runtime_error("Expected ')' after '!'");
+            next();
+            return !val;
+        }
+        throw std::runtime_error("Expected '(' after '!'");
+    }
 
+    // Handle nested parenthesized sub-condition
+    if (current() == '(') {
+        next();
+        bool val = parseLogicalOr();
+        if (current() != ')') throw std::runtime_error("Expected ')' for nested condition");
+        next();
+        return val;
+    }
+
+    // Regular comparison: expr op expr
     double left = parseExpression();
     skipSpaces();
 
@@ -76,9 +97,7 @@ bool CStyleInterpreter::parseCondition() {
     skipSpaces();
 
     double right = parseExpression();
-
-    if (current() != ')') throw std::runtime_error("Expected ')' after condition");
-    next();
+    skipSpaces();
 
     if (op == "<") return left < right;
     if (op == ">") return left > right;
@@ -88,6 +107,44 @@ bool CStyleInterpreter::parseCondition() {
     if (op == ">=") return left >= right;
 
     throw std::runtime_error("Unknown comparison operator: " + op);
+}
+
+bool CStyleInterpreter::parseLogicalAnd() {
+    bool result = parseComparison();
+    skipSpaces();
+    while (current() == '&' && index + 1 < currentLine.length() && currentLine[index + 1] == '&') {
+        index += 2;
+        skipSpaces();
+        bool right = parseComparison();
+        result = result && right;
+        skipSpaces();
+    }
+    return result;
+}
+
+bool CStyleInterpreter::parseLogicalOr() {
+    bool result = parseLogicalAnd();
+    skipSpaces();
+    while (current() == '|' && index + 1 < currentLine.length() && currentLine[index + 1] == '|') {
+        index += 2;
+        skipSpaces();
+        bool right = parseLogicalAnd();
+        result = result || right;
+        skipSpaces();
+    }
+    return result;
+}
+
+bool CStyleInterpreter::parseCondition() {
+    if (current() != '(') throw std::runtime_error("Expected '(' for condition");
+    next();
+
+    bool result = parseLogicalOr();
+
+    if (current() != ')') throw std::runtime_error("Expected ')' after condition");
+    next();
+
+    return result;
 }
 
 bool CStyleInterpreter::parseConditionFromString(const std::string& condLine) {

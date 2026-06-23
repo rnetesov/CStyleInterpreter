@@ -55,6 +55,9 @@ private:
     char current() const;
     void next();
     void skipSpaces();
+    bool parseComparison();
+    bool parseLogicalAnd();
+    bool parseLogicalOr();
     bool parseCondition();
     void skipBlock();
     bool parseConditionFromString(const std::string& condLine);
