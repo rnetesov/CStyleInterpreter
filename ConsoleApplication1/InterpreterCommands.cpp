@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <fstream>
 #include <limits>
+#include <algorithm>
 
 void CStyleInterpreter::executeLine(size_t lineIdx) {
 	// КРИТИЧЕСКОЕ АРХИТЕКТУРНОЕ ИСПРАВЛЕНИЕ:
@@ -120,6 +121,14 @@ void CStyleInterpreter::executeLine(size_t lineIdx) {
 		next();
 		skipSpaces();
 		if (current() != ';') throw std::runtime_error("Missing ';' at the end of include command");
+
+		if (incFileName.empty())
+			throw std::runtime_error("Empty include filename");
+		if (incFileName[0] == '/' || incFileName[0] == '\\' ||
+			(incFileName.size() >= 2 && incFileName[1] == ':'))
+			throw std::runtime_error("Absolute paths are not allowed in include: " + incFileName);
+		if (incFileName.find("..") != std::string::npos)
+			throw std::runtime_error("Path traversal ('..') is not allowed in include: " + incFileName);
 
 		std::ifstream incFile(incFileName);
 		if (!incFile.is_open()) throw std::runtime_error("Could not open include file: " + incFileName);

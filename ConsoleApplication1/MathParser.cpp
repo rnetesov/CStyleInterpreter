@@ -198,6 +198,8 @@ double CStyleInterpreter::parseFactor() {
                 auto& var = getVarRef(name);
                 if (std::holds_alternative<std::vector<double>>(var)) {
                     const auto& arr = std::get<std::vector<double>>(var);
+                    if (idxVal < 0)
+                        throw std::runtime_error("Negative array index");
                     size_t i = static_cast<size_t>(idxVal);
                     if (i >= arr.size()) throw std::runtime_error("Array index out of bounds");
                     return arr[i];
