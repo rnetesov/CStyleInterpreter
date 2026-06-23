@@ -6,6 +6,19 @@
 #include <ctime>
 #include <climits>
 
+// Check if keyword appears as a whole word (not part of another identifier)
+static bool containsKeyword(const std::string& line, const std::string& keyword) {
+    size_t pos = 0;
+    while ((pos = line.find(keyword, pos)) != std::string::npos) {
+        bool leftOk = (pos == 0) || !std::isalnum(line[pos - 1]) && line[pos - 1] != '_';
+        size_t end = pos + keyword.length();
+        bool rightOk = (end >= line.length()) || !std::isalnum(line[end]) && line[end] != '_';
+        if (leftOk && rightOk) return true;
+        pos++;
+    }
+    return false;
+}
+
 CStyleInterpreter::CStyleInterpreter() {
     scopeStack.push_back({}); // Глобальный уровень видимости
     setVariable("pi", 3.141592653589793);
@@ -236,11 +249,11 @@ void CStyleInterpreter::executeBlock(size_t endLineIdx, bool breakOnReturn) {
     while (ip <= endLineIdx && ip < lines.size()) {
         std::string line = lines[ip];
 
-        if (line.find("while") != std::string::npos && line.find("#") == std::string::npos) {
+        if (containsKeyword(line, "while") && line.find("#") == std::string::npos) {
             loopStack.push_back(ip);
             isForStack.push_back(false);
         }
-        if (line.find("for") != std::string::npos && line.find("#") == std::string::npos) {
+        if (containsKeyword(line, "for") && line.find("#") == std::string::npos) {
             loopStack.push_back(ip);
             isForStack.push_back(true);
         }
@@ -253,7 +266,7 @@ void CStyleInterpreter::executeBlock(size_t endLineIdx, bool breakOnReturn) {
             throw std::runtime_error("Line " + std::to_string(origLine) + ": " + e.what());
         }
 
-        if (breakOnReturn && line.find("return") != std::string::npos && line.find("#") == std::string::npos) {
+        if (breakOnReturn && containsKeyword(line, "return") && line.find("#") == std::string::npos) {
             break;
         }
 
