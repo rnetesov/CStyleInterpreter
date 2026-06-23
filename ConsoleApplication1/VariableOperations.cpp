@@ -23,6 +23,8 @@ void CStyleInterpreter::processVariableAssignment(const std::string& varName) {
                 size_t i = static_cast<size_t>(idxVal);
                 if (i >= arr.size()) throw std::runtime_error("Array index out of bounds");
                 arr[i] = value;
+                skipSpaces();
+                if (current() != ';') throw std::runtime_error("Expected ';' after array assignment");
                 return;
             }
             throw std::runtime_error("Variable '" + varName + "' is not an array");
@@ -73,6 +75,8 @@ void CStyleInterpreter::processVariableAssignment(const std::string& varName) {
                 }
                 skipSpaces();
             }
+            skipSpaces();
+            if (current() != ';') throw std::runtime_error("Expected ';' after string assignment");
             setVariable(varName, result);
             return;
         }
@@ -84,6 +88,8 @@ void CStyleInterpreter::processVariableAssignment(const std::string& varName) {
             if (size > 1000000)
                 throw std::runtime_error("Array size exceeds maximum allowed (1000000)");
             std::vector<double> newArr(static_cast<size_t>(size), 0.0);
+            skipSpaces();
+            if (current() != ';') throw std::runtime_error("Expected ';' after array declaration");
             setVariable(varName, newArr);
             return;
         }
@@ -104,6 +110,7 @@ void CStyleInterpreter::processVariableAssignment(const std::string& varName) {
             if (funcCheck == "str_pos")     funcResult = builtin_str_pos();
 
             skipSpaces();
+            if (current() != ';') throw std::runtime_error("Expected ';' after function call");
             setVariable(varName, funcResult);
             return;
         }
@@ -147,12 +154,16 @@ void CStyleInterpreter::processVariableAssignment(const std::string& varName) {
                     }
                     skipSpaces();
                 }
+                skipSpaces();
+                if (current() != ';') throw std::runtime_error("Expected ';' after string assignment");
                 setVariable(varName, result);
                 return;
             }
         }
 
         double value = parseExpression();
+        skipSpaces();
+        if (current() != ';') throw std::runtime_error("Expected ';' after assignment");
         setVariable(varName, value);
         return;
     }
@@ -166,6 +177,8 @@ void CStyleInterpreter::processVariableAssignment(const std::string& varName) {
                     var = std::get<double>(var) + 1;
                 }
                 else throw std::runtime_error("Cannot increment this variable type");
+                skipSpaces();
+                if (current() != ';') throw std::runtime_error("Expected ';' after '++'");
                 return;
             }
             throw std::runtime_error("Variable '" + varName + "' is not initialized");
@@ -179,6 +192,8 @@ void CStyleInterpreter::processVariableAssignment(const std::string& varName) {
                     var = std::get<double>(var) + value;
                 }
                 else throw std::runtime_error("Cannot use += on this variable type");
+                skipSpaces();
+                if (current() != ';') throw std::runtime_error("Expected ';' after '+='");
                 return;
             }
             throw std::runtime_error("Variable '" + varName + "' is not initialized");
@@ -194,6 +209,8 @@ void CStyleInterpreter::processVariableAssignment(const std::string& varName) {
                     var = std::get<double>(var) - 1;
                 }
                 else throw std::runtime_error("Cannot decrement this variable type");
+                skipSpaces();
+                if (current() != ';') throw std::runtime_error("Expected ';' after '--'");
                 return;
             }
             throw std::runtime_error("Variable '" + varName + "' is not initialized");
@@ -207,6 +224,8 @@ void CStyleInterpreter::processVariableAssignment(const std::string& varName) {
                     var = std::get<double>(var) - value;
                 }
                 else throw std::runtime_error("Cannot use -= on this variable type");
+                skipSpaces();
+                if (current() != ';') throw std::runtime_error("Expected ';' after '-='");
                 return;
             }
             throw std::runtime_error("Variable '" + varName + "' is not initialized");
@@ -223,6 +242,8 @@ void CStyleInterpreter::processVariableAssignment(const std::string& varName) {
                     var = std::get<double>(var) * value;
                 }
                 else throw std::runtime_error("Cannot use *= on this variable type");
+                skipSpaces();
+                if (current() != ';') throw std::runtime_error("Expected ';' after '*='");
                 return;
             }
             throw std::runtime_error("Variable '" + varName + "' is not initialized");
@@ -240,6 +261,8 @@ void CStyleInterpreter::processVariableAssignment(const std::string& varName) {
                     var = std::get<double>(var) / value;
                 }
                 else throw std::runtime_error("Cannot use /= on this variable type");
+                skipSpaces();
+                if (current() != ';') throw std::runtime_error("Expected ';' after '/='");
                 return;
             }
             throw std::runtime_error("Variable '" + varName + "' is not initialized");
