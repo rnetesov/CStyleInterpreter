@@ -30,6 +30,24 @@ private:
     std::string currentLine;
     size_t index = 0;
 
+    // --- RAII-охранник состояния парсера ---
+    struct ParserStateGuard {
+        CStyleInterpreter& self;
+        std::string savedLine;
+        size_t savedIndex;
+        ParserStateGuard(CStyleInterpreter& interp)
+            : self(interp), savedLine(interp.currentLine), savedIndex(interp.index) {}
+        ~ParserStateGuard() { self.currentLine = savedLine; self.index = savedIndex; }
+        ParserStateGuard(const ParserStateGuard&) = delete;
+        ParserStateGuard& operator=(const ParserStateGuard&) = delete;
+    };
+
+    // --- Общие утилиты парсинга (CStyleInterpreter.cpp) ---
+    std::string parseIdentifier();
+    std::string parseStringLiteral();
+    double callBuiltinMathFunc(double (CStyleInterpreter::*func)(double));
+    void executeBlock(size_t endLineIdx, bool breakOnReturn);
+
     // --- Утилиты сканирования строки (CStyleInterpreter.cpp) ---
     char current() const;
     void next();

@@ -2,44 +2,23 @@
 #include <stdexcept>
 #include <vector>
 
-// Чтение имени переменной-аргумента из скобок функции
 std::string CStyleInterpreter::parseVarArg() {
     skipSpaces();
     if (current() != '(') throw std::runtime_error("Expected '(' for function argument");
-    next(); // Пропускаем '('
-
+    next();
     skipSpaces();
-    std::string varName;
-    while (std::isalnum(current()) || current() == '_') {
-        varName += current();
-        index++;
-    }
-    skipSpaces();
-    return varName;
+    return parseIdentifier();
 }
 
-// Вспомогательный метод для чтения строки в кавычках из аргументов функций
 std::string CStyleInterpreter::parseStringLiteralArg() {
     skipSpaces();
-    if (current() != '"') throw std::runtime_error("Expected opening double quote for string argument");
-    next(); // Пропускаем '"'
-
-    std::string lit;
-    while (index < currentLine.length() && currentLine[index] != '"') {
-        lit += currentLine[index];
-        index++;
-    }
-    if (index >= currentLine.length()) throw std::runtime_error("Missing closing double quote in string argument");
-    next(); // Пропускаем '"'
-    skipSpaces();
-    return lit;
+    return parseStringLiteral();
 }
 
-// Реализация функции strlen() через области видимости
 double CStyleInterpreter::builtin_strlen() {
     std::string varName = parseVarArg();
     if (current() != ')') throw std::runtime_error("Expected ')' after strlen argument");
-    next(); // Пропускаем ')'
+    next();
     skipSpaces();
 
     if (!varExists(varName)) {
@@ -59,11 +38,10 @@ double CStyleInterpreter::builtin_strlen() {
     throw std::runtime_error("strlen: unsupported variable type for '" + varName + "'");
 }
 
-// Реализация функции empty() через области видимости
 double CStyleInterpreter::builtin_empty() {
     std::string varName = parseVarArg();
     if (current() != ')') throw std::runtime_error("Expected ')' after empty argument");
-    next(); // Пропускаем ')'
+    next();
     skipSpaces();
 
     if (!varExists(varName)) {
@@ -83,11 +61,10 @@ double CStyleInterpreter::builtin_empty() {
     throw std::runtime_error("empty: unsupported variable type for '" + varName + "'");
 }
 
-// Реализация функции is_string() через области видимости
 double CStyleInterpreter::builtin_is_string() {
     std::string varName = parseVarArg();
     if (current() != ')') throw std::runtime_error("Expected ')' after is_string argument");
-    next(); // Пропускаем ')'
+    next();
     skipSpaces();
 
     if (!varExists(varName)) {
@@ -96,15 +73,14 @@ double CStyleInterpreter::builtin_is_string() {
     return std::holds_alternative<std::string>(getVarRef(varName)) ? 1.0 : 0.0;
 }
 
-// Реализация функции str_pos(var, "search") через области видимости
 double CStyleInterpreter::builtin_str_pos() {
     std::string varName = parseVarArg();
     if (current() != ',') throw std::runtime_error("Expected ',' between str_pos arguments");
-    next(); // Пропускаем ','
+    next();
 
     std::string searchStr = parseStringLiteralArg();
     if (current() != ')') throw std::runtime_error("Expected ')' after str_pos arguments");
-    next(); // Пропускаем ')'
+    next();
     skipSpaces();
 
     if (!varExists(varName) || !std::holds_alternative<std::string>(getVarRef(varName))) {
@@ -118,19 +94,18 @@ double CStyleInterpreter::builtin_str_pos() {
     return static_cast<double>(pos);
 }
 
-// Реализация функции str_replace(var, "old", "new") через области видимости
 double CStyleInterpreter::builtin_str_replace() {
     std::string varName = parseVarArg();
     if (current() != ',') throw std::runtime_error("Expected ',' in str_replace");
-    next(); // Пропускаем ','
+    next();
 
     std::string oldStr = parseStringLiteralArg();
     if (current() != ',') throw std::runtime_error("Expected second ',' in str_replace");
-    next(); // Пропускаем ','
+    next();
 
     std::string newStr = parseStringLiteralArg();
     if (current() != ')') throw std::runtime_error("Expected ')' at the end of str_replace");
-    next(); // Пропускаем ')'
+    next();
     skipSpaces();
 
     if (!varExists(varName) || !std::holds_alternative<std::string>(getVarRef(varName))) {
@@ -144,15 +119,14 @@ double CStyleInterpreter::builtin_str_replace() {
         pos += newStr.length();
     }
 
-    getVarRef(varName) = text; // Прямое обновление в нужной области видимости
+    getVarRef(varName) = text;
     return 0.0;
 }
 
-// Реализация функции trim(var) через области видимости
 double CStyleInterpreter::builtin_trim() {
     std::string varName = parseVarArg();
     if (current() != ')') throw std::runtime_error("Expected ')' after trim argument");
-    next(); // Пропускаем ')'
+    next();
     skipSpaces();
 
     if (!varExists(varName) || !std::holds_alternative<std::string>(getVarRef(varName))) {
@@ -170,6 +144,6 @@ double CStyleInterpreter::builtin_trim() {
         text = text.substr(start, end - start + 1);
     }
 
-    getVarRef(varName) = text; // Прямое обновление в нужной области видимости
+    getVarRef(varName) = text;
     return 0.0;
 }
