@@ -195,6 +195,80 @@ void CStyleInterpreter::executeBlock(size_t endLineIdx, bool breakOnReturn) {
             break;
         }
 
+        // Handle break: skip to end of current loop block
+        if (breakFlag && !loopStack.empty()) {
+            breakFlag = false;
+            size_t startLoop = loopStack.back();
+            bool isFor = isForStack.back();
+            // Skip forward to find the closing '}' of the loop
+            int depth = 0;
+            while (ip < lines.size()) {
+                std::string l = lines[ip];
+                ip++;
+                if (l.find("{") != std::string::npos) depth++;
+                if (l.find("}") != std::string::npos) {
+                    if (depth == 0) break;
+                    depth--;
+                }
+            }
+            loopStack.pop_back();
+            isForStack.pop_back();
+            if (isFor && !forStepStack.empty()) {
+                forStepStack.pop_back();
+            }
+            continue;
+        }
+
+        // Handle continue: jump to loop re-evaluation
+        if (continueFlag && !loopStack.empty()) {
+            continueFlag = false;
+            size_t startLoop = loopStack.back();
+            bool isFor = isForStack.back();
+            std::string loopLine = lines[startLoop];
+
+            // For 'for' loops, execute the step expression first
+            if (isFor && !forStepStack.empty()) {
+                executeSingleLineFromString(forStepStack.back());
+            }
+
+            // Re-evaluate the loop condition
+            bool cond = false;
+            if (isFor) {
+                size_t firstSemi = loopLine.find(";");
+                size_t secondSemi = loopLine.find(";", firstSemi + 1);
+                std::string condPart = "(" + loopLine.substr(firstSemi + 1, secondSemi - firstSemi - 1) + ")";
+                cond = parseConditionFromString("while " + condPart);
+            }
+            else {
+                cond = parseConditionFromString(loopLine);
+            }
+
+            if (cond) {
+                // Skip to body start (right after the loop header)
+                ip = startLoop + 1;
+            }
+            else {
+                // Condition false, exit the loop
+                // Skip forward to closing '}'
+                int depth = 0;
+                while (ip < lines.size()) {
+                    std::string l = lines[ip];
+                    ip++;
+                    if (l.find("{") != std::string::npos) depth++;
+                    if (l.find("}") != std::string::npos) {
+                        if (depth == 0) break;
+                        depth--;
+                    }
+                }
+                loopStack.pop_back();
+                isForStack.pop_back();
+                if (isFor && !forStepStack.empty()) {
+                    forStepStack.pop_back();
+                }
+            }
+            continue;
+        }
+
         if (line.find("}") != std::string::npos && !loopStack.empty()) {
             size_t startLoop = loopStack.back();
             bool isFor = isForStack.back();

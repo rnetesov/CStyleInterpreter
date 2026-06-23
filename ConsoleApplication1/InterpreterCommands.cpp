@@ -239,6 +239,18 @@ void CStyleInterpreter::executeLine(size_t lineIdx) {
 		return;
 	}
 
+	// Команда BREAK
+	if (firstWord == "break") {
+		breakFlag = true;
+		return;
+	}
+
+	// Команда CONTINUE
+	if (firstWord == "continue") {
+		continueFlag = true;
+		return;
+	}
+
 	// Команда IF
 	if (firstWord == "if") {
 		bool condition = parseCondition();
