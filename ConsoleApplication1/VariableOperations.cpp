@@ -35,8 +35,45 @@ void CStyleInterpreter::processVariableAssignment(const std::string& varName) {
         skipSpaces();
 
         if (current() == '"') {
-            std::string strLit = parseStringLiteral();
-            setVariable(varName, strLit);
+            std::string result = parseStringLiteral();
+            skipSpaces();
+            // Support string concatenation with +
+            while (current() == '+') {
+                next();
+                skipSpaces();
+                if (current() == '"') {
+                    result += parseStringLiteral();
+                } else {
+                    // Concatenate with a string variable
+                    std::string concatVar;
+                    while (std::isalnum(current()) || current() == '_') {
+                        concatVar += current();
+                        index++;
+                    }
+                    skipSpaces();
+                    if (!concatVar.empty() && varExists(concatVar)) {
+                        auto& var = getVarRef(concatVar);
+                        if (std::holds_alternative<std::string>(var)) {
+                            result += std::get<std::string>(var);
+                        } else if (std::holds_alternative<double>(var)) {
+                            double d = std::get<double>(var);
+                            if (d == (int)d) {
+                                result += std::to_string((int)d);
+                            } else {
+                                result += std::to_string(d);
+                            }
+                        } else {
+                            throw std::runtime_error("Cannot concatenate variable '" + concatVar + "' to string");
+                        }
+                    } else if (!concatVar.empty()) {
+                        throw std::runtime_error("Variable '" + concatVar + "' is not initialized");
+                    } else {
+                        throw std::runtime_error("Expected string literal or variable after '+' in string concatenation");
+                    }
+                }
+                skipSpaces();
+            }
+            setVariable(varName, result);
             return;
         }
 
@@ -69,6 +106,50 @@ void CStyleInterpreter::processVariableAssignment(const std::string& varName) {
             skipSpaces();
             setVariable(varName, funcResult);
             return;
+        }
+
+        // Check if the RHS is a string variable (for concatenation like: a = name + " world")
+        if (!funcCheck.empty() && varExists(funcCheck)) {
+            auto& rhsVar = getVarRef(funcCheck);
+            if (std::holds_alternative<std::string>(rhsVar)) {
+                index = checkIdx;
+                skipSpaces();
+                std::string result = std::get<std::string>(rhsVar);
+                while (current() == '+') {
+                    next();
+                    skipSpaces();
+                    if (current() == '"') {
+                        result += parseStringLiteral();
+                    } else {
+                        std::string concatVar;
+                        while (std::isalnum(current()) || current() == '_') {
+                            concatVar += current();
+                            index++;
+                        }
+                        skipSpaces();
+                        if (!concatVar.empty() && varExists(concatVar)) {
+                            auto& cv = getVarRef(concatVar);
+                            if (std::holds_alternative<std::string>(cv)) {
+                                result += std::get<std::string>(cv);
+                            } else if (std::holds_alternative<double>(cv)) {
+                                double d = std::get<double>(cv);
+                                if (d == (int)d) {
+                                    result += std::to_string((int)d);
+                                } else {
+                                    result += std::to_string(d);
+                                }
+                            } else {
+                                throw std::runtime_error("Cannot concatenate variable '" + concatVar + "' to string");
+                            }
+                        } else if (!concatVar.empty()) {
+                            throw std::runtime_error("Variable '" + concatVar + "' is not initialized");
+                        }
+                    }
+                    skipSpaces();
+                }
+                setVariable(varName, result);
+                return;
+            }
         }
 
         double value = parseExpression();
