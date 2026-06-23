@@ -88,11 +88,11 @@ void CStyleInterpreter::skipBlock() {
     while (ip < lines.size()) {
         std::string l = lines[ip];
         ip++;
-        if (l.find("{") != std::string::npos) depth++;
         if (l.find("}") != std::string::npos) {
             if (depth == 0) return;
             depth--;
         }
+        if (l.find("{") != std::string::npos) depth++;
     }
     throw std::runtime_error("Unmatched '{': reached end of source without finding closing '}'");
 }
