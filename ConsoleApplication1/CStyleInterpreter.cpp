@@ -200,16 +200,23 @@ void CStyleInterpreter::executeBlock(size_t endLineIdx, bool breakOnReturn) {
             breakFlag = false;
             size_t startLoop = loopStack.back();
             bool isFor = isForStack.back();
-            // Skip forward to find the closing '}' of the loop
+            // Calculate current nesting depth relative to loop body
             int depth = 0;
+            for (size_t k = startLoop + 1; k < ip; k++) {
+                for (char c : lines[k]) {
+                    if (c == '{') depth++;
+                    if (c == '}') depth--;
+                }
+            }
+            // Skip forward until we exit the loop (depth goes negative)
             while (ip < lines.size()) {
                 std::string l = lines[ip];
                 ip++;
-                if (l.find("{") != std::string::npos) depth++;
-                if (l.find("}") != std::string::npos) {
-                    if (depth == 0) break;
-                    depth--;
+                for (char c : l) {
+                    if (c == '{') depth++;
+                    if (c == '}') depth--;
                 }
+                if (depth < 0) break;
             }
             loopStack.pop_back();
             isForStack.pop_back();
@@ -249,16 +256,21 @@ void CStyleInterpreter::executeBlock(size_t endLineIdx, bool breakOnReturn) {
             }
             else {
                 // Condition false, exit the loop
-                // Skip forward to closing '}'
                 int depth = 0;
+                for (size_t k = startLoop + 1; k < ip; k++) {
+                    for (char c : lines[k]) {
+                        if (c == '{') depth++;
+                        if (c == '}') depth--;
+                    }
+                }
                 while (ip < lines.size()) {
                     std::string l = lines[ip];
                     ip++;
-                    if (l.find("{") != std::string::npos) depth++;
-                    if (l.find("}") != std::string::npos) {
-                        if (depth == 0) break;
-                        depth--;
+                    for (char c : l) {
+                        if (c == '{') depth++;
+                        if (c == '}') depth--;
                     }
+                    if (depth < 0) break;
                 }
                 loopStack.pop_back();
                 isForStack.pop_back();
@@ -269,7 +281,13 @@ void CStyleInterpreter::executeBlock(size_t endLineIdx, bool breakOnReturn) {
             continue;
         }
 
-        if (line.find("}") != std::string::npos && !loopStack.empty()) {
+        // Only treat '}' as loop-end when it's the first non-whitespace char
+        bool isClosingBrace = false;
+        {
+            size_t pos = line.find_first_not_of(" \t");
+            if (pos != std::string::npos && line[pos] == '}') isClosingBrace = true;
+        }
+        if (isClosingBrace && !loopStack.empty()) {
             size_t startLoop = loopStack.back();
             bool isFor = isForStack.back();
             std::string loopLine = lines[startLoop];
@@ -303,8 +321,62 @@ void CStyleInterpreter::executeBlock(size_t endLineIdx, bool breakOnReturn) {
     }
 }
 
+void CStyleInterpreter::expandInlineBlocks(std::vector<std::string>& src) {
+    bool changed = true;
+    while (changed) {
+        changed = false;
+        for (size_t i = 0; i < src.size(); i++) {
+            const std::string& line = src[i];
+            // Find first '{' not inside a string
+            int firstOpen = -1;
+            bool inStr = false;
+            for (size_t j = 0; j < line.size(); j++) {
+                if (line[j] == '"') inStr = !inStr;
+                if (!inStr && line[j] == '{' && firstOpen < 0) firstOpen = (int)j;
+            }
+            if (firstOpen < 0) continue;
+            // Find matching '}' on the same line
+            int depth = 0;
+            int matchClose = -1;
+            inStr = false;
+            for (size_t j = firstOpen; j < line.size(); j++) {
+                if (line[j] == '"') inStr = !inStr;
+                if (inStr) continue;
+                if (line[j] == '{') depth++;
+                if (line[j] == '}') {
+                    depth--;
+                    if (depth == 0) { matchClose = (int)j; break; }
+                }
+            }
+            if (matchClose < 0) continue;
+            // Extract content between braces
+            std::string content = line.substr(firstOpen + 1, matchClose - firstOpen - 1);
+            // Trim content
+            size_t cs = content.find_first_not_of(" \t");
+            size_t ce = content.find_last_not_of(" \t");
+            if (cs == std::string::npos) continue; // empty block
+            content = content.substr(cs, ce - cs + 1);
+            // Build replacement lines
+            std::string before = line.substr(0, firstOpen) + "{";
+            std::string after = "}" + line.substr(matchClose + 1);
+            // Trim trailing whitespace from 'after'
+            size_t ae = after.find_last_not_of(" \t");
+            if (ae != std::string::npos) after = after.substr(0, ae + 1);
+            std::vector<std::string> replacement;
+            replacement.push_back(before);
+            replacement.push_back("    " + content);
+            replacement.push_back(after);
+            src.erase(src.begin() + i);
+            src.insert(src.begin() + i, replacement.begin(), replacement.end());
+            changed = true;
+            break; // restart scan
+        }
+    }
+}
+
 void CStyleInterpreter::run(const std::vector<std::string>& sourceLines) {
     lines = sourceLines;
+    expandInlineBlocks(lines);
     ip = 0;
     executeBlock(SIZE_MAX, false);
 }
