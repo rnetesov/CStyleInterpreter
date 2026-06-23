@@ -23,12 +23,15 @@ void CStyleInterpreter::executeLine(size_t lineIdx) {
 	}
 
 	if (current() == '}') {
-		if (ip < lines.size()) {
-			std::string nextLine = lines[ip];
-			if (nextLine.find("else") != std::string::npos) {
-				ip++;
-				skipBlock();
-			}
+		bool hasElse = false;
+		if (currentLine.find("else") != std::string::npos) {
+			hasElse = true;
+		} else if (ip < lines.size() && lines[ip].find("else") != std::string::npos) {
+			ip++;
+			hasElse = true;
+		}
+		if (hasElse) {
+			skipBlock();
 		}
 		currentLine = savedLine;
 		index = savedIndex;
