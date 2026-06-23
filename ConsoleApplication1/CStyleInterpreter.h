@@ -29,6 +29,8 @@ private:
     double lastReturnValue = 0.0;
     std::string currentLine;
     size_t index = 0;
+    bool breakFlag = false;
+    bool continueFlag = false;
 
     // --- RAII-охранник состояния парсера ---
     struct ParserStateGuard {
